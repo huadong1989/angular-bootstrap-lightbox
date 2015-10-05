@@ -19,6 +19,7 @@
 .lightbox-image-container {
   position: relative;
   text-align: center; /* center the image */
+  overflow:hidden;
 }
 
 /* the caption overlays the top left corner of the image */

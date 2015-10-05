@@ -24,7 +24,7 @@ angular.module('bootstrapLightbox').run(['$templateCache', function($templateCac
   'use strict';
 
   $templateCache.put('lightbox.html',
-    "<div class=modal-body ng-swipe-left=Lightbox.nextImage() ng-swipe-right=Lightbox.prevImage()><div class=lightbox-nav><button class=close aria-hidden=true ng-click=$dismiss()>×</button><div class=btn-group><a class=\"btn btn-xs btn-default\" ng-click=Lightbox.prevImage()>‹ Previous</a> <a ng-href={{Lightbox.imageUrl}} target=_blank class=\"btn btn-xs btn-default\" title=\"Open in new tab\">Open image in new tab</a> <a class=\"btn btn-xs btn-default\" ng-click=Lightbox.nextImage()>Next ›</a></div></div><div class=lightbox-image-container><div class=lightbox-image-caption><span>{{Lightbox.imageCaption}}</span></div><img ng-if=!Lightbox.isVideo(Lightbox.image) lightbox-src={{Lightbox.imageUrl}}> <div ng-if=Lightbox.isVideo(Lightbox.image) class=\"embed-responsive embed-responsive-16by9\"><video ng-if=!Lightbox.isSharedVideo(Lightbox.image) lightbox-src={{Lightbox.imageUrl}} controls autoplay></video><embed-video ng-if=Lightbox.isSharedVideo(Lightbox.image) lightbox-src={{Lightbox.imageUrl}} ng-href={{Lightbox.imageUrl}} iframe-id=lightbox-video class=embed-responsive-item><a ng-href={{Lightbox.imageUrl}}>Watch video</a></embed-video></div></div></div>"
+    "<div class=modal-body ng-swipe-left=Lightbox.nextImage() ng-swipe-right=Lightbox.prevImage()><div class=lightbox-nav><button class=close aria-hidden=true ng-click=$dismiss()>×</button><div class=btn-group><a class=\"btn btn-xs btn-default\" ng-click=Lightbox.prevImage()>‹ 上一张</a> <a class=\"btn btn-xs btn-default\" ng-click=Lightbox.nextImage()>下一张 ›</a> <a class=\"btn btn-xs btn-default\" ng-click=Lightbox.turn(90)>旋转</a> <a class=\"btn btn-xs btn-default\" ng-click=Lightbox.init()>还原</a></div></div><div class=lightbox-image-container><div class=lightbox-image-caption><span>{{Lightbox.imageCaption}}</span></div><img ng-if=!Lightbox.isVideo(Lightbox.image) lightbox-src={{Lightbox.imageUrl}} ng-style=\"{width:image.clientWidth+'px',height:image.clientHeight+'px',position:'relative',left: Lightbox.left + 'px', top: Lightbox.top + 'px', '-webkit-transform': 'rotate(' + Lightbox.deg + 'deg)', 'transform': 'rotate(' + Lightbox.deg + 'deg)'}\"><div ng-if=Lightbox.isVideo(Lightbox.image) class=\"embed-responsive embed-responsive-16by9\"><video ng-if=!Lightbox.isSharedVideo(Lightbox.image) lightbox-src={{Lightbox.imageUrl}} controls autoplay></video><embed-video ng-if=Lightbox.isSharedVideo(Lightbox.image) lightbox-src={{Lightbox.imageUrl}} ng-href={{Lightbox.imageUrl}} iframe-id=lightbox-video class=embed-responsive-item><a ng-href={{Lightbox.imageUrl}}>Watch video</a></embed-video></div></div></div>"
   );
 
 }]);
@@ -601,6 +601,30 @@ angular.module('bootstrapLightbox').directive('lightboxSrc', ['$window',
     };
   };
 
+  var getLayer = function(e) {
+		if (e.layerX && e.layerY) {
+			return e;
+		}
+		// 设置自有实现
+		e.layerX = (function (ele) {
+			var x = 0;
+			while (ele) {
+				x += ele.offsetLeft;
+				ele = ele.offsetParent;
+			}
+			return e.pageX - x;
+		}(e.target));
+		e.layerY = (function (ele) {
+			var y = 0;
+			while (ele) {
+				y += ele.offsetTop;
+				ele = ele.offsetParent;
+			}
+			return e.pageY - y;
+		}(e.target));
+		return e;
+	};
+  
   // the dimensions of the image
   var imageWidth = 0;
   var imageHeight = 0;
@@ -608,7 +632,16 @@ angular.module('bootstrapLightbox').directive('lightboxSrc', ['$window',
   return {
     'link': function (scope, element, attrs) {
       // resize the img element and the containing modal
-      var resize = function () {
+      var image = scope.image = {
+		  el:null,
+		  width:0,
+		  height:0,
+		  clientHeight:0,
+		  clientWidth:0,
+		  percent:1
+	  };
+	  
+	  var resize = function () {
         // get the window dimensions
         var windowWidth = $window.innerWidth;
         var windowHeight = $window.innerHeight;
@@ -662,8 +695,18 @@ angular.module('bootstrapLightbox').directive('lightboxSrc', ['$window',
         angular.element(
           document.querySelector('.lightbox-modal .modal-content')
         ).css({
-          'height': modalDimensions.height + 'px'
+          'height': modalDimensions.height + 'px',
+		  'overflow':'hidden'
         });
+		
+		Lightbox.left = 0;
+		Lightbox.top = 0;
+		Lightbox.deg = 0;
+		
+		scope.image.width = imageWidth;
+		scope.image.height = imageHeight;
+		scope.image.clientWidth = imageDisplayDimensions.width;
+		scope.image.clientHeight = imageDisplayDimensions.height;
       };
 
       // load the new image and/or resize the video whenever the attr changes
@@ -708,6 +751,71 @@ angular.module('bootstrapLightbox').directive('lightboxSrc', ['$window',
 
       // resize the image and modal whenever the window gets resized
       angular.element($window).on('resize', resize);
+	  
+	  
+	  
+	  // drag image
+		var down = null;
+		image.el = element[0];
+		image.el.addEventListener('mousedown', function (e) {
+			e.preventDefault();
+			down = {
+				x: e.pageX,
+				y: e.pageY
+			};
+		});
+		document.body.addEventListener('mouseup', function () {
+			down = null;
+		});
+		element.on('mousemove', function (e) {
+			e.preventDefault();
+			scope.$apply(function () {
+				if (!down) {
+					return;
+				}
+				Lightbox.left += e.pageX - down.x;
+				Lightbox.top += e.pageY - down.y;
+				down = {
+					x: e.pageX,
+					y: e.pageY
+				};
+			});
+		});
+	
+		// turn
+		Lightbox.turn = function (deg) {
+			if (!deg){
+				Lightbox.deg = 0;
+			}else{
+				Lightbox.deg += deg;
+			}
+		};
+		
+		Lightbox.init = function(){
+			resize();
+		};
+		
+		//resize
+		scope.$watch('image.percent', function () {
+			scope.image.clientWidth = scope.image.width * scope.image.percent;
+			scope.image.clientHeight = scope.image.height * scope.image.percent;
+		});
+		
+		angular.element(image.el).on('mousewheel', function (e) {
+			scope.$apply(function () {
+				e.preventDefault();
+				e = getLayer(e);
+				scope.image.percent += ((e.wheelDeltaY?e.wheelDeltaY:e.originalEvent.wheelDeltaY) > 0 ? 0.1 : -0.1);
+			});
+		});
+
+		angular.element(image.el).on('DOMMouseScroll', function (e) {
+			scope.$apply(function () {
+				e.preventDefault();
+				e = getLayer(e);
+				scope.image.percent += (e.detail < 0 ? 0.1 : -0.1);
+			});
+		});
     }
   };
 }]);

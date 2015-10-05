@@ -19,6 +19,14 @@
       <a class="btn btn-xs btn-default" ng-click="Lightbox.nextImage()">
         下一张 ›
       </a>
+	  
+	  <a class="btn btn-xs btn-default" ng-click="Lightbox.turn(90)">
+        旋转
+      </a>
+	  
+	  <a class="btn btn-xs btn-default" ng-click="Lightbox.init()">
+        还原
+      </a>
     </div>
   </div>
 
@@ -30,7 +38,7 @@
 
     <!-- image -->
     <img ng-if="!Lightbox.isVideo(Lightbox.image)"
-        lightbox-src="{{Lightbox.imageUrl}}">
+        lightbox-src="{{Lightbox.imageUrl}}" ng-style="{width:image.clientWidth+'px',height:image.clientHeight+'px',position:'relative',left: Lightbox.left + 'px', top: Lightbox.top + 'px', '-webkit-transform': 'rotate(' + Lightbox.deg + 'deg)', 'transform': 'rotate(' + Lightbox.deg + 'deg)'}">
 
     <!-- video -->
     <div ng-if="Lightbox.isVideo(Lightbox.image)"
