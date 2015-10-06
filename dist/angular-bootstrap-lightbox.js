@@ -707,6 +707,7 @@ angular.module('bootstrapLightbox').directive('lightboxSrc', ['$window',
 		scope.image.height = imageHeight;
 		scope.image.clientWidth = imageDisplayDimensions.width;
 		scope.image.clientHeight = imageDisplayDimensions.height;
+		scope.image.percent = 1;
       };
 
       // load the new image and/or resize the video whenever the attr changes
@@ -805,7 +806,7 @@ angular.module('bootstrapLightbox').directive('lightboxSrc', ['$window',
 			scope.$apply(function () {
 				e.preventDefault();
 				e = getLayer(e);
-				scope.image.percent += ((e.wheelDeltaY?e.wheelDeltaY:e.originalEvent.wheelDeltaY) > 0 ? 0.1 : -0.1);
+				scope.image.percent += ((e.wheelDeltaY?e.wheelDeltaY:e.originalEvent.wheelDeltaY) > 0 ? 0.05 : -0.05);
 			});
 		});
 
@@ -813,7 +814,7 @@ angular.module('bootstrapLightbox').directive('lightboxSrc', ['$window',
 			scope.$apply(function () {
 				e.preventDefault();
 				e = getLayer(e);
-				scope.image.percent += (e.detail < 0 ? 0.1 : -0.1);
+				scope.image.percent += (e.detail < 0 ? 0.05 : -0.05);
 			});
 		});
     }
